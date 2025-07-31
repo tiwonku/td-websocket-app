@@ -33,6 +33,11 @@ wss.on('connection', (ws) => {
   console.log(`WebSocket client connected (total: ${clients.size})`);
   ws.send(JSON.stringify({ type: 'status', message: 'connected' }));
 
+  if (wss.clients.size === 1) {
+    console.log("first connection. starting keepalive");
+    keepServerAlive();
+  }
+
   ws.on('message', (data) => {
     // Broadcast to all connected clients except the sender
     clients.forEach((client) => {
@@ -51,3 +56,33 @@ wss.on('connection', (ws) => {
 server.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
 });
+
+// Implement broadcast function because of ws doesn't have it
+const broadcast = (ws, message, includeSelf) => {
+  if (includeSelf) {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  } else {
+    wss.clients.forEach((client) => {
+      if (client !== ws && client.readyState === WebSocket.OPEN) {
+        client.send(message);
+      }
+    });
+  }
+};
+
+/**
+ * Sends a ping message to all connected clients every 50 seconds
+ */
+const keepServerAlive = () => {
+  keepAliveId = setInterval(() => {
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send('ping');
+      }
+    });
+  }, 50000);
+};
