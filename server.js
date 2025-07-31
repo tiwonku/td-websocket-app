@@ -2,7 +2,6 @@ const path = require('path');
 const http = require('http');
 const WebSocket = require('ws');
 const express = require('express');
-const path = require('path');
 
 /*
  * A lightweight WebSocket relay server and static web host for TouchDesigner projects.
