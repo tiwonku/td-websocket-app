@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TouchDesigner WebSocket Control</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 20px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .control-group {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+      }
+      input[type="range"] {
+        width: 100%;
+      }
+      #messages {
+        min-height: 100px;
+        background: #eee;
+        border-radius: 4px;
+        padding: 10px;
+        overflow-y: auto;
+      }
+      #status {
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+      button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: #fff;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>TouchDesigner WebSocket Control</h1>
+    <div id="status">Connecting…</div>
+    <div class="control-group">
+      <label for="slider">Slider Value:</label>
+      <input type="range" id="slider" min="0" max="1" step="0.01" value="0.5" />
+      <span id="sliderValue">0.50</span>
+    </div>
+    <div class="control-group">
+      <label for="colorPicker">Pick a Color:</label>
+      <input type="color" id="colorPicker" value="#ff0000" />
+    </div>
+    <div class="control-group">
+      <label for="textInput">Send Custom Message:</label>
+      <input type="text" id="textInput" placeholder="Type a message" />
+      <button id="sendButton">Send</button>
+    </div>
+    <div class="control-group">
+      <label>Messages from TouchDesigner:</label>
+      <div id="messages"></div>
+    </div>
+    <script>
+      // Utility to log messages
+      function appendMessage(text) {
+        const container = document.getElementById('messages');
+        const p = document.createElement('p');
+        p.textContent = text;
+        container.appendChild(p);
+        container.scrollTop = container.scrollHeight;
+      }
+
+      // Determine WebSocket protocol based on current page
+      const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+      const ws = new WebSocket(`${protocol}://${window.location.host}`);
+
+      ws.onopen = () => {
+        document.getElementById('status').textContent = 'WebSocket connected';
+      };
+
+      ws.onmessage = (event) => {
+        // Append incoming messages to display
+        appendMessage(event.data);
+      };
+
+      ws.onclose = () => {
+        document.getElementById('status').textContent = 'WebSocket disconnected';
+      };
+
+      ws.onerror = (err) => {
+        console.error('WebSocket error', err);
+      };
+
+      // Send slider updates
+      const slider = document.getElementById('slider');
+      slider.addEventListener('input', (e) => {
+        const value = parseFloat(e.target.value).toFixed(2);
+        document.getElementById('sliderValue').textContent = value;
+        const payload = JSON.stringify({ type: 'slider', value });
+        ws.send(payload);
+      });
+
+      // Send color updates
+      const colorPicker = document.getElementById('colorPicker');
+      colorPicker.addEventListener('input', (e) => {
+        const payload = JSON.stringify({ type: 'color', value: e.target.value });
+        ws.send(payload);
+      });
+
+      // Send text messages
+      const sendButton = document.getElementById('sendButton');
+      sendButton.addEventListener('click', () => {
+        const input = document.getElementById('textInput');
+        const message = input.value.trim();
+        if (message) {
+          const payload = JSON.stringify({ type: 'text', value: message });
+          ws.send(payload);
+          input.value = '';
+        }
+      });
+    </script>
+  </body>
+</html>
